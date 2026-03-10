@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DropZone from '../components/upload/DropZone';
-import { listJobs, uploadVideoWithAssets } from '../api/videoApi';
+import { listJobs, uploadVideoWithAssets, listAssets, uploadAsset, deleteAsset } from '../api/videoApi';
 import type { Job } from '../types/job';
-import { Film, Clock, CheckCircle, AlertCircle, Loader2, UserCircle2, X, Video, Scissors, Sliders } from 'lucide-react';
+import type { AssetStatus } from '../api/videoApi';
+import { Film, Clock, CheckCircle, AlertCircle, Loader2, UserCircle2, X, Video, Scissors, Sliders, PackageOpen, CheckCircle2, Upload, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 
 function StatusBadge({ status }: { status: string }) {
@@ -44,9 +45,13 @@ export default function HomePage() {
     highlight: true,
     assembly: true,
   });
+  const [assets, setAssets] = useState<Record<string, AssetStatus>>({});
+  const [assetUploading, setAssetUploading] = useState<string | null>(null);
+
   const guestInputRef = useRef<HTMLInputElement>(null);
   const introInputRef = useRef<HTMLInputElement>(null);
   const outroInputRef = useRef<HTMLInputElement>(null);
+  const assetInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const parseTime = (val: string): number | undefined => {
     if (!val.trim()) return undefined;
@@ -64,7 +69,30 @@ export default function HomePage() {
 
   useEffect(() => {
     listJobs().then(setRecentJobs).catch(() => {});
+    listAssets().then(setAssets).catch(() => {});
   }, []);
+
+  const handleAssetUpload = async (name: string, file: File) => {
+    setAssetUploading(name);
+    try {
+      await uploadAsset(name, file);
+      const updated = await listAssets();
+      setAssets(updated);
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || `Failed to upload ${name}`);
+    } finally {
+      setAssetUploading(null);
+    }
+  };
+
+  const handleAssetDelete = async (name: string) => {
+    try {
+      await deleteAsset(name);
+      setAssets((prev) => ({ ...prev, [name]: { ...prev[name], present: false } }));
+    } catch {
+      // silently ignore
+    }
+  };
 
   const handleFile = async (file: File) => {
     setUploading(true);
@@ -275,6 +303,71 @@ export default function HomePage() {
           </div>
         </div>
         <p className="text-xs text-gray-600">Accepts seconds (e.g. 60) or HH:MM:SS format</p>
+      </div>
+
+      {/* Default Assets */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <PackageOpen className="w-4 h-4 text-purple-400" />
+          <span className="text-sm font-medium text-gray-300">Default Assets</span>
+          <span className="text-xs text-gray-500">— intro, outro, host photo, logo, background</span>
+        </div>
+        <div className="space-y-2">
+          {([
+            { name: 'intro',       label: 'Intro Video',        accept: 'video/*' },
+            { name: 'outro',       label: 'Outro Video',        accept: 'video/*' },
+            { name: 'host_photo',  label: 'Host Photo',         accept: 'image/*' },
+            { name: 'logo',        label: 'Logo',               accept: 'image/*' },
+            { name: 'bg_template', label: 'Background Template',accept: 'image/*' },
+          ] as const).map(({ name, label, accept }) => {
+            const status = assets[name];
+            const busy = assetUploading === name;
+            return (
+              <div key={name} className="flex items-center justify-between gap-3 py-1.5 border-b border-gray-800 last:border-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  {status?.present
+                    ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                    : <div className="w-3.5 h-3.5 rounded-full border border-gray-600 shrink-0" />}
+                  <span className="text-sm text-gray-300 truncate">{label}</span>
+                  {status?.present && (
+                    <span className="text-xs text-gray-600 font-mono truncate">{status.filename}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => assetInputRefs.current[name]?.click()}
+                    disabled={busy}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-purple-400 hover:text-purple-300 disabled:opacity-50 transition-colors"
+                  >
+                    {busy
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Upload className="w-3 h-3" />}
+                    {status?.present ? 'Replace' : 'Upload'}
+                  </button>
+                  {status?.present && (
+                    <button
+                      onClick={() => handleAssetDelete(name)}
+                      className="p-1 text-gray-600 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                  <input
+                    ref={(el) => { assetInputRefs.current[name] = el; }}
+                    type="file"
+                    accept={accept}
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleAssetUpload(name, f);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Output mode — prominent toggle */}

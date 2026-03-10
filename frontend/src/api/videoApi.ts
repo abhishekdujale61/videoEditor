@@ -8,6 +8,7 @@ export interface ShortPlanItem {
   start_time: number;
   end_time: number;
   score: number;
+  image_prompt: string;
 }
 
 export async function uploadVideo(
@@ -136,6 +137,28 @@ export async function approveShort(
     concept_id: conceptId,
     image_prompt: imagePrompt,
   });
+}
+
+export interface AssetStatus {
+  present: boolean;
+  filename: string;
+}
+
+export async function listAssets(): Promise<Record<string, AssetStatus>> {
+  const { data } = await client.get('/api/assets');
+  return data;
+}
+
+export async function uploadAsset(name: string, file: File): Promise<void> {
+  const formData = new FormData();
+  formData.append('file', file);
+  await client.post(`/api/assets/${name}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+}
+
+export async function deleteAsset(name: string): Promise<void> {
+  await client.delete(`/api/assets/${name}`);
 }
 
 export function getDownloadUrl(jobId: string, asset: string): string {

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { getJob } from '../api/videoApi';
 import { submitPlan } from '../api/videoApi';
 import type { ShortPlanItem } from '../api/videoApi';
-import { Plus, Trash2, ChevronRight, Loader2 } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, Loader2, Image } from 'lucide-react';
 
 function formatTime(secs: number): string {
   const m = Math.floor(secs / 60);
@@ -40,6 +40,7 @@ export default function PlanEditPage() {
         start_time: s.start_time ?? 0,
         end_time: s.end_time ?? 60,
         score: s.score ?? 0.7,
+        image_prompt: s.image_prompt || '',
       }));
       setShorts(items);
       setLoading(false);
@@ -68,6 +69,7 @@ export default function PlanEditPage() {
         start_time: last ? last.end_time : 0,
         end_time: last ? last.end_time + 60 : 60,
         score: 0.7,
+        image_prompt: '',
       },
     ]);
   };
@@ -119,6 +121,16 @@ export default function PlanEditPage() {
               </button>
             </div>
 
+            {/* Inline clip preview using HTML5 time fragments */}
+            <video
+              key={`${i}-${short.start_time}-${short.end_time}`}
+              src={`/api/jobs/${jobId}/source#t=${short.start_time},${short.end_time}`}
+              controls
+              preload="metadata"
+              className="w-full rounded-lg border border-gray-700 bg-gray-800"
+              style={{ maxHeight: '160px' }}
+            />
+
             <div className="grid grid-cols-1 gap-2">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Title</label>
@@ -157,6 +169,19 @@ export default function PlanEditPage() {
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm font-mono text-gray-200 focus:outline-none focus:border-purple-500 transition-colors"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                  <Image className="w-3 h-3" />
+                  Thumbnail Image Prompt
+                </label>
+                <textarea
+                  value={short.image_prompt}
+                  onChange={(e) => update(i, 'image_prompt', e.target.value)}
+                  rows={2}
+                  placeholder="Describe the thumbnail background for DALL-E (e.g. abstract glowing neural network, dark background, cinematic blue tones…)"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+                />
               </div>
             </div>
           </div>

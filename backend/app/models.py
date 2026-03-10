@@ -74,6 +74,7 @@ class ShortReviewData(BaseModel):
     image_path: str | None = None   # filename relative to job_dir
     image_prompt: str = ""
     iteration: int = 0              # how many times image has been regenerated
+    clip_file: str | None = None    # extracted clip filename for in-review preview
 
 
 class ShortMeta(BaseModel):
@@ -110,6 +111,7 @@ class JobResponse(BaseModel):
     review_step: str | None = None       # which step is currently paused for review
     awaiting_plan: list[dict] = []       # AI-suggested shorts awaiting user edit
     short_review: ShortReviewData | None = None  # current per-short review state
+    files_cleaned: bool = False          # True after user downloads and files are deleted
 
 
 class JobStatusResponse(BaseModel):
@@ -145,6 +147,7 @@ class ShortPlanItem(BaseModel):
     start_time: float
     end_time: float
     score: float = 0.7
+    image_prompt: str = ""
 
 
 class SubmitPlanRequest(BaseModel):

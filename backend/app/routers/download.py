@@ -42,9 +42,9 @@ def _resolve_asset(job_id: str, asset: str) -> Path:
         if asset == f"clip_{clip.index}_thumbnail":
             return job_dir / clip.thumbnail_file
 
-    # Short-review preview images (bg_{i}_v{n}.jpg) — serve directly by filename
+    # In-review preview files — images and video clips served directly by filename
     candidate = job_dir / asset
-    if candidate.exists() and candidate.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+    if candidate.exists() and candidate.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", ".mp4"):
         return candidate
 
     raise HTTPException(status_code=404, detail=f"Asset '{asset}' not found")

@@ -346,3 +346,11 @@ class JobManager:
             if job:
                 job.short_review = None
                 self._persist(job_id)
+
+    def add_completed_short(self, job_id: str, short: ShortMeta):
+        """Append a completed ShortMeta to the job incrementally (live UI updates)."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job:
+                job.shorts.append(short)
+                self._persist(job_id)

@@ -279,6 +279,7 @@ Identify {num_shorts} distinct topic segments suitable for standalone short-form
 - Each must cover one clear topic/question
 - Give each a punchy title (3-6 words)
 - Score 0-1 based on standalone value
+- image_prompt: a DALL-E 3 thumbnail background prompt — describe an abstract, cinematic scene (no people, no text, no faces) that visually represents the topic. Include style, colors, mood.
 
 ## 3. VIDEO SUMMARY
 One sentence describing the main topics and insights from this video. Focus on WHAT is discussed, not WHO is speaking or their roles.
@@ -295,7 +296,7 @@ Respond ONLY with valid JSON:
     {{"start": 10.5, "end": 22.0, "text": "quote..."}}
   ],
   "shorts": [
-    {{"start_time": 45.0, "end_time": 120.0, "topic": "Topic description", "score": 0.9, "title": "Punchy Title"}}
+    {{"start_time": 45.0, "end_time": 120.0, "topic": "Topic description", "score": 0.9, "title": "Punchy Title", "image_prompt": "Abstract glowing neural network on dark background, cinematic blue tones..."}}
   ],
   "video_summary": "...",
   "thumbnail": {{
@@ -342,6 +343,7 @@ Respond ONLY with valid JSON:
             "topic": str(short.get("topic", ""))[:200],
             "score": max(0.0, min(1.0, float(short.get("score", 0.7)))),
             "title": str(short.get("title", f"Short {len(validated_shorts)+1}"))[:60],
+            "image_prompt": str(short.get("image_prompt", ""))[:500],
         })
 
     # Validate thumbnail title/subtitle

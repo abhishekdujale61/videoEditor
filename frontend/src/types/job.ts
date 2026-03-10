@@ -61,6 +61,7 @@ export interface ShortReviewData {
   image_path: string | null;
   image_prompt: string;
   iteration: number;
+  clip_file: string | null;
 }
 
 export interface Job {
