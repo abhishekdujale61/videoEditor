@@ -274,7 +274,7 @@ def _run_transcription(job_id: str, upload_path: str) -> dict:
 def _run_ai_planning(job_id: str, transcript: dict, duration: float, extra_context: str = "") -> dict:
     job_manager.update_step(
         job_id, StepName.AI_PLANNING, StepStatus.RUNNING,
-        "Claude is planning highlight and shorts from transcript..."
+        "GPT-4o is planning highlights and shorts from transcript..."
     )
     plan = ai_analyzer.plan_content(transcript, duration, extra_context=extra_context)
     num_shorts = len(plan.get("shorts", []))

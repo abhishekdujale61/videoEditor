@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useJobPolling } from '../hooks/useJobPolling';
 import { regenerateShortImage, approveShort, getDownloadUrl } from '../api/videoApi';
 import type { ThumbnailConcept, ShortReviewData } from '../types/job';
-import { CheckCircle2, RefreshCw, Loader2, Image, Type } from 'lucide-react';
+import { CheckCircle2, RefreshCw, Loader2, ImageIcon, Type, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 
 function formatTime(secs: number): string {
@@ -13,26 +13,22 @@ function formatTime(secs: number): string {
 }
 
 function ConceptCard({
-  concept,
-  selected,
-  onClick,
+  concept, selected, onClick,
 }: {
-  concept: ThumbnailConcept;
-  selected: boolean;
-  onClick: () => void;
+  concept: ThumbnailConcept; selected: boolean; onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={clsx(
-        'w-full text-left p-3 rounded-xl border transition-colors space-y-1',
+        'w-full text-left p-3.5 rounded-xl border transition-all space-y-1',
         selected
-          ? 'border-purple-500 bg-purple-500/10'
-          : 'border-gray-700 bg-gray-800/50 hover:border-gray-600',
+          ? 'border-purple-500/70 bg-purple-500/10 shadow-sm shadow-purple-900/20'
+          : 'border-gray-800 bg-gray-900/40 hover:border-gray-700 hover:bg-gray-900/60',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium text-gray-200 leading-snug">{concept.title}</span>
+        <span className="text-sm font-semibold text-gray-200 leading-snug">{concept.title}</span>
         {selected && <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />}
       </div>
       <p className="text-xs text-gray-500 leading-relaxed">{concept.description}</p>
@@ -53,23 +49,18 @@ export default function ShortReviewPage() {
   const [approving, setApproving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Track local image state separate from polling (avoids flicker)
   const [localImagePath, setLocalImagePath] = useState<string | null>(null);
   const [localIteration, setLocalIteration] = useState(0);
 
-  // When job transitions away from short_review, navigate accordingly
+  // Navigate when job transitions away
   useEffect(() => {
     if (!job) return;
-    if (job.status === 'awaiting_plan_edit') {
-      navigate(`/plan-edit/${jobId}`, { replace: true });
-    } else if (job.status === 'completed') {
-      navigate(`/results/${jobId}`, { replace: true });
-    } else if (job.status === 'failed') {
-      navigate(`/processing/${jobId}`, { replace: true });
-    }
+    if (job.status === 'awaiting_plan_edit') navigate(`/plan-edit/${jobId}`, { replace: true });
+    else if (job.status === 'completed') navigate(`/results/${jobId}`, { replace: true });
+    else if (job.status === 'failed') navigate(`/processing/${jobId}`, { replace: true });
   }, [job?.status, jobId, navigate]);
 
-  // Sync review state from polled job data when short_review changes
+  // Sync when short_index changes
   const lastShortIndex = useRef<number>(-1);
   useEffect(() => {
     if (!job?.short_review) return;
@@ -87,7 +78,7 @@ export default function ShortReviewPage() {
     }
   }, [job?.short_review?.short_index]);
 
-  // Keep local image in sync when backend updates it (after regenerate)
+  // Sync iteration updates (after regenerate)
   useEffect(() => {
     if (!job?.short_review) return;
     const r = job.short_review;
@@ -120,7 +111,6 @@ export default function ShortReviewPage() {
     setActionError(null);
     try {
       await approveShort(jobId, overlayTitle.trim() || review.title, selectedConceptId, prompt.trim());
-      // polling will update the page with the next short
     } catch (err: any) {
       setActionError(err?.response?.data?.detail || err.message || 'Failed to approve short');
       setApproving(false);
@@ -129,39 +119,31 @@ export default function ShortReviewPage() {
 
   if (!review) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400 animate-pulse">
-        Loading short review…
+      <div className="max-w-3xl mx-auto px-4 py-16 flex items-center justify-center gap-3 text-gray-400">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span className="text-sm">Loading short review…</span>
       </div>
     );
   }
 
   const imageUrl = localImagePath ? getDownloadUrl(jobId!, localImagePath) : null;
+  const isLast = review.short_index + 1 >= review.total_shorts;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
+
       {/* Header */}
-      <div className="text-center space-y-1">
-        <p className="text-xs text-purple-400 font-mono">
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-400 font-medium">
           Short {review.short_index + 1} of {review.total_shorts}
-        </p>
-        {review.topic && <p className="text-gray-400 text-sm">{review.topic}</p>}
+        </div>
+        {review.topic && (
+          <p className="text-gray-300 font-semibold text-base leading-snug">{review.topic}</p>
+        )}
         <p className="text-xs text-gray-600 font-mono">
           {formatTime(review.start_time)} → {formatTime(review.end_time)}
         </p>
       </div>
-
-      {/* Clip preview */}
-      {review.clip_file && (
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-gray-400">Clip Preview</p>
-          <video
-            src={getDownloadUrl(jobId!, review.clip_file)}
-            controls
-            className="w-full rounded-xl border border-gray-700 bg-gray-800"
-            style={{ maxHeight: '280px' }}
-          />
-        </div>
-      )}
 
       {/* Progress dots */}
       <div className="flex justify-center gap-1.5">
@@ -169,22 +151,34 @@ export default function ShortReviewPage() {
           <div
             key={i}
             className={clsx(
-              'w-2 h-2 rounded-full transition-colors',
-              i < review.short_index
-                ? 'bg-green-500'
-                : i === review.short_index
-                ? 'bg-purple-500'
-                : 'bg-gray-700',
+              'rounded-full transition-all duration-300',
+              i < review.short_index  ? 'w-2 h-2 bg-green-500' :
+              i === review.short_index ? 'w-4 h-2 bg-purple-500' :
+              'w-2 h-2 bg-gray-800',
             )}
           />
         ))}
       </div>
 
-      {/* Main layout: concepts left, image right */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Concept selection + title editor */}
+      {/* Clip preview */}
+      {review.clip_file && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Clip Preview</p>
+          <video
+            src={getDownloadUrl(jobId!, review.clip_file)}
+            controls
+            className="w-full rounded-xl border border-gray-800 bg-black shadow-sm"
+            style={{ maxHeight: '280px' }}
+          />
+        </div>
+      )}
+
+      {/* Main content: concepts + image */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {/* Left: concepts + title overlay */}
         <div className="space-y-3">
-          <p className="text-xs font-medium text-gray-400">Select a Concept</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Concept</p>
           {review.concepts.map((concept) => (
             <ConceptCard
               key={concept.id}
@@ -198,39 +192,43 @@ export default function ShortReviewPage() {
             />
           ))}
 
-          {/* Editable title / text overlay */}
-          <div className="pt-1 space-y-1">
-            <label className="text-xs text-gray-500 flex items-center gap-1">
+          {/* Text overlay editor */}
+          <div className="pt-1 space-y-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
               <Type className="w-3 h-3" />
-              Thumbnail Text Overlay
+              Thumbnail Text
             </label>
             <input
               type="text"
               value={overlayTitle}
               onChange={(e) => setOverlayTitle(e.target.value)}
               placeholder="Title shown on the thumbnail…"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
             />
-            <p className="text-xs text-gray-600">This text will be composited onto the final thumbnail image.</p>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              This text will be composited onto the final thumbnail.
+            </p>
           </div>
         </div>
 
-        {/* Image preview + prompt editor */}
+        {/* Right: image preview + prompt */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-gray-400">Generated Image</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Generated Image</p>
             {localIteration > 0 && (
-              <span className="text-xs text-gray-600 font-mono">
-                v{localIteration + 1} — {localIteration} redo{localIteration !== 1 ? 's' : ''}
+              <span className="flex items-center gap-1 text-xs text-gray-600 font-mono">
+                <RotateCcw className="w-3 h-3" />
+                {localIteration} redo{localIteration !== 1 ? 's' : ''}
               </span>
             )}
           </div>
 
-          <div className="aspect-video bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center border border-gray-700">
+          {/* Image area */}
+          <div className="aspect-video bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
             {regenerating ? (
               <div className="text-center text-gray-500 space-y-2">
-                <Loader2 className="w-8 h-8 mx-auto animate-spin" />
-                <p className="text-xs">Generating new image…</p>
+                <Loader2 className="w-7 h-7 mx-auto animate-spin text-purple-500" />
+                <p className="text-xs">Generating image…</p>
               </div>
             ) : imageUrl ? (
               <img
@@ -239,35 +237,33 @@ export default function ShortReviewPage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="text-center text-gray-600 space-y-1">
-                <Image className="w-8 h-8 mx-auto" />
+              <div className="text-center text-gray-700 space-y-2">
+                <ImageIcon className="w-8 h-8 mx-auto" />
                 <p className="text-xs">No image yet</p>
               </div>
             )}
           </div>
 
-          {/* Prompt editor — edit and regenerate as many times as needed */}
+          {/* Prompt editor */}
           <div className="space-y-2">
-            <label className="text-xs text-gray-500">
-              Image Prompt — edit and regenerate until satisfied
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Image Prompt
             </label>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
               placeholder="Describe the background scene for DALL-E…"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+              className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors resize-none"
             />
             <button
               onClick={handleRegenerate}
               disabled={regenerating || !prompt.trim()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-200 text-sm font-medium rounded-xl border border-gray-700 transition-colors"
             >
-              {regenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
+              {regenerating
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <RefreshCw className="w-4 h-4" />}
               {regenerating ? 'Generating…' : 'Redo Image'}
             </button>
           </div>
@@ -280,22 +276,20 @@ export default function ShortReviewPage() {
         </div>
       )}
 
-      {/* Approve button */}
+      {/* Approve */}
       <button
         onClick={handleApprove}
         disabled={approving || !selectedConceptId}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors"
+        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-lg shadow-purple-900/30"
       >
-        {approving ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <CheckCircle2 className="w-4 h-4" />
-        )}
+        {approving
+          ? <Loader2 className="w-4 h-4 animate-spin" />
+          : <CheckCircle2 className="w-4 h-4" />}
         {approving
           ? 'Approving…'
-          : review.short_index + 1 < review.total_shorts
-          ? `Approve & Next Short (${review.short_index + 2}/${review.total_shorts})`
-          : 'Approve & Finish'}
+          : isLast
+          ? 'Approve & Finish'
+          : `Approve & Next Short (${review.short_index + 2}/${review.total_shorts})`}
       </button>
     </div>
   );

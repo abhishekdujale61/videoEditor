@@ -308,19 +308,21 @@ export default function ProcessingPage() {
   const isManualPause = isAwaitingInstructions && !job?.review_step;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold">Processing Your Video</h1>
-        <p className="text-gray-400">
+    <div className="max-w-3xl mx-auto px-4 py-10 space-y-5">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {isStepReview ? 'Review Step Output' : 'Processing Your Video'}
+        </h1>
+        <p className="text-gray-400 text-sm">
           {isStepReview
-            ? 'Review the step output below — approve to continue or add feedback.'
-            : 'This may take a few minutes depending on video length.'}
+            ? 'Review the output below — approve to continue or add feedback for the next AI step.'
+            : 'AI is analyzing your video. This may take a few minutes.'}
         </p>
       </div>
 
       {/* Pipeline progress */}
       {status && (
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+        <div className="bg-gray-900/70 rounded-2xl border border-gray-800 p-5">
           <PipelineProgress
             steps={status.steps}
             progress={status.progress}
@@ -370,27 +372,32 @@ export default function ProcessingPage() {
 
       {/* ── Instruction injection while actively processing ── */}
       {status?.status === 'processing' && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-medium text-gray-400">Producer Instructions</p>
-          <p className="text-xs text-gray-500">
-            Pause at the next checkpoint and inject custom context into the AI steps.
-          </p>
-          <textarea
-            value={instructionText}
-            onChange={(e) => setInstructionText(e.target.value)}
-            placeholder="e.g. Prioritize clips about AI safety. Avoid clickbait titles."
-            rows={3}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none"
-          />
-          <button
-            onClick={handlePause}
-            disabled={pausing}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-700 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <PauseCircle className="w-4 h-4" />
-            {pausing ? 'Requesting pause…' : 'Pause at Next Checkpoint'}
-          </button>
-        </div>
+        <details className="group">
+          <summary className="cursor-pointer text-xs text-gray-600 hover:text-gray-400 transition-colors select-none list-none flex items-center gap-1.5">
+            <PauseCircle className="w-3.5 h-3.5" />
+            Producer instructions (optional)
+          </summary>
+          <div className="mt-3 bg-gray-900/60 border border-gray-800 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-gray-500">
+              Pause at the next checkpoint and inject custom context into the AI steps.
+            </p>
+            <textarea
+              value={instructionText}
+              onChange={(e) => setInstructionText(e.target.value)}
+              placeholder="e.g. Prioritize clips about AI safety. Avoid clickbait titles."
+              rows={3}
+              className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+            />
+            <button
+              onClick={handlePause}
+              disabled={pausing}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <PauseCircle className="w-4 h-4" />
+              {pausing ? 'Requesting pause…' : 'Pause at Next Checkpoint'}
+            </button>
+          </div>
+        </details>
       )}
 
       {actionError && (
