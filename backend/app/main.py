@@ -1,10 +1,12 @@
 import shutil
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import upload, jobs, download, concepts, shorts, assets
+from app.dependencies import require_auth
+from app.routers import assets, concepts, download, jobs, shorts, upload
+from app.routers import auth
 
 app = FastAPI(title="AI Video Editor", version="2.0.0")
 
@@ -16,12 +18,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(upload.router)
-app.include_router(jobs.router)
-app.include_router(concepts.router)
-app.include_router(shorts.router)
-app.include_router(download.router)
-app.include_router(assets.router)
+# Public routes — no auth required
+app.include_router(auth.router)
+
+# Protected routes — JWT required on every endpoint
+_auth = [Depends(require_auth)]
+app.include_router(upload.router, dependencies=_auth)
+app.include_router(jobs.router, dependencies=_auth)
+app.include_router(concepts.router, dependencies=_auth)
+app.include_router(shorts.router, dependencies=_auth)
+app.include_router(download.router, dependencies=_auth)
+app.include_router(assets.router, dependencies=_auth)
 
 
 @app.get("/health")

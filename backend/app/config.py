@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     num_shorts: int = 5
     num_thumbnail_concepts: int = 2
+    auth_username: str = "admin"
+    auth_password: str = "changeme"
+    jwt_secret: str = "please-change-this-secret-before-deploying"
+    jwt_expire_hours: int = 168  # 7 days
 
     class Config:
         env_file = ".env"
