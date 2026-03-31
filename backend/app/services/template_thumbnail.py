@@ -229,10 +229,10 @@ def create_episode_thumbnail(
     draw = ImageDraw.Draw(final)
 
     # ── 6. Title text (white, bold) ───────────────────────────────────────────
-    title_font_size = 72
-    max_text_w = int(W * 0.50)         # text stays within centre 50% of canvas
+    title_font_size = 110
+    max_text_w = int(W * 0.62)         # text stays within centre 62% of canvas
 
-    while title_font_size >= 36:
+    while title_font_size >= 60:
         title_font = _load_font(title_font_size)
         title_lines = _wrap_text(draw, title, title_font, max_text_w)
         if len(title_lines) <= 2:
@@ -240,8 +240,8 @@ def create_episode_thumbnail(
         title_font_size -= 4
 
     title_font = _load_font(title_font_size)
-    title_line_h = title_font_size + 12
-    title_y = int(H * 0.587)           # ~634 px on 1080 canvas
+    title_line_h = title_font_size + 16
+    title_y = int(H * 0.55)           # ~594 px on 1080 canvas
 
     for i, line in enumerate(title_lines):
         lw = int(draw.textlength(line, font=title_font))
@@ -251,8 +251,8 @@ def create_episode_thumbnail(
         draw.text((x, y), line, fill=(255, 255, 255), font=title_font)
 
     # ── 7. Subtitle text (cyan, bold) ─────────────────────────────────────────
-    sub_font_size = 58
-    while sub_font_size >= 28:
+    sub_font_size = 80
+    while sub_font_size >= 48:
         sub_font = _load_font(sub_font_size)
         sub_lines = _wrap_text(draw, subtitle, sub_font, max_text_w)
         if len(sub_lines) <= 3:
@@ -260,8 +260,8 @@ def create_episode_thumbnail(
         sub_font_size -= 4
 
     sub_font = _load_font(sub_font_size)
-    sub_line_h = sub_font_size + 10
-    sub_y = title_y + len(title_lines) * title_line_h + 6
+    sub_line_h = sub_font_size + 12
+    sub_y = title_y + len(title_lines) * title_line_h + 10
 
     CYAN = (0, 229, 255)
     for i, line in enumerate(sub_lines):
@@ -273,11 +273,11 @@ def create_episode_thumbnail(
 
     # ── 8. Names pill bar ─────────────────────────────────────────────────────
     names_text = f"With {guest_name} & {host_name}"
-    bar_font = _load_font(34)
+    bar_font = _load_font(44)
     names_w = int(draw.textlength(names_text, font=bar_font))
-    pad_x, pad_y = 44, 14
+    pad_x, pad_y = 48, 16
     bar_w = names_w + pad_x * 2
-    bar_h = 34 + pad_y * 2
+    bar_h = 44 + pad_y * 2
     bar_x = (W - bar_w) // 2
     bar_y = sub_y + len(sub_lines) * sub_line_h + 18
 
