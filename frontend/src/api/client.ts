@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Use VITE_API_BASE_URL in production (direct to backend, bypasses Vite proxy)
+// Leave unset in dev — Vite proxy handles routing
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 const client = axios.create({
-  baseURL: '',
+  baseURL,
   headers: {
     'Accept': 'application/json',
   },
