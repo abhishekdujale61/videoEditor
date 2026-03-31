@@ -224,33 +224,32 @@ def create_episode_thumbnail(
         logo = logo.resize((logo_target_w, int(logo.height * scale)), Image.LANCZOS)
         canvas.paste(logo, ((W - logo.width) // 2, 28), logo)
 
-    # ── 5. Convert to RGB for text drawing ───────────────────────────────────
-    final = canvas.convert("RGB")
+    # ── 5. Smooth dark gradient — bottom 50% of canvas ───────────────────────
+    gradient_h = int(H * 0.50)
+    gradient_img = Image.new("RGBA", (W, gradient_h), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(gradient_img)
+    for y in range(gradient_h):
+        alpha = int(215 * (y / gradient_h))
+        gd.line([(0, y), (W, y)], fill=(0, 0, 0, alpha))
+    canvas_rgba = canvas.convert("RGBA")
+    canvas_rgba.paste(gradient_img, (0, H - gradient_h), gradient_img)
+    final = canvas_rgba.convert("RGB")
     draw = ImageDraw.Draw(final)
 
-    # ── 6. Title text (white, bold) ───────────────────────────────────────────
-    title_font_size = 110
-    max_text_w = int(W * 0.62)         # text stays within centre 62% of canvas
+    # ── 6. Font sizing ────────────────────────────────────────────────────────
+    max_text_w = int(W * 0.65)
 
+    title_font_size = 110
     while title_font_size >= 60:
         title_font = _load_font(title_font_size)
         title_lines = _wrap_text(draw, title, title_font, max_text_w)
         if len(title_lines) <= 2:
             break
         title_font_size -= 4
-
     title_font = _load_font(title_font_size)
     title_line_h = title_font_size + 16
-    title_y = int(H * 0.55)           # ~594 px on 1080 canvas
+    title_lines = _wrap_text(draw, title, title_font, max_text_w)
 
-    for i, line in enumerate(title_lines):
-        lw = int(draw.textlength(line, font=title_font))
-        x = (W - lw) // 2
-        y = title_y + i * title_line_h
-        draw.text((x + 3, y + 3), line, fill=(0, 0, 0), font=title_font)
-        draw.text((x, y), line, fill=(255, 255, 255), font=title_font)
-
-    # ── 7. Subtitle text (cyan, bold) ─────────────────────────────────────────
     sub_font_size = 80
     while sub_font_size >= 48:
         sub_font = _load_font(sub_font_size)
@@ -258,11 +257,31 @@ def create_episode_thumbnail(
         if len(sub_lines) <= 3:
             break
         sub_font_size -= 4
-
     sub_font = _load_font(sub_font_size)
     sub_line_h = sub_font_size + 12
-    sub_y = title_y + len(title_lines) * title_line_h + 10
+    sub_lines = _wrap_text(draw, subtitle, sub_font, max_text_w)
 
+    bar_font = _load_font(44)
+    pad_x, pad_y = 48, 16
+    bar_h = 44 + pad_y * 2
+    names_text = f"With {guest_name} & {host_name}"
+    names_w = int(draw.textlength(names_text, font=bar_font))
+    bar_w = names_w + pad_x * 2
+
+    # ── 7. Position text bottom-up (pill → subtitle → title) ─────────────────
+    bar_y   = H - bar_h - 28
+    sub_y   = bar_y - len(sub_lines) * sub_line_h - 20
+    title_y = sub_y - len(title_lines) * title_line_h - 14
+
+    # ── 8. Title (white, bold) ────────────────────────────────────────────────
+    for i, line in enumerate(title_lines):
+        lw = int(draw.textlength(line, font=title_font))
+        x = (W - lw) // 2
+        y = title_y + i * title_line_h
+        draw.text((x + 3, y + 3), line, fill=(0, 0, 0), font=title_font)
+        draw.text((x, y), line, fill=(255, 255, 255), font=title_font)
+
+    # ── 9. Subtitle (cyan, bold) ──────────────────────────────────────────────
     CYAN = (0, 229, 255)
     for i, line in enumerate(sub_lines):
         lw = int(draw.textlength(line, font=sub_font))
@@ -271,16 +290,8 @@ def create_episode_thumbnail(
         draw.text((x + 2, y + 2), line, fill=(0, 0, 0), font=sub_font)
         draw.text((x, y), line, fill=CYAN, font=sub_font)
 
-    # ── 8. Names pill bar ─────────────────────────────────────────────────────
-    names_text = f"With {guest_name} & {host_name}"
-    bar_font = _load_font(44)
-    names_w = int(draw.textlength(names_text, font=bar_font))
-    pad_x, pad_y = 48, 16
-    bar_w = names_w + pad_x * 2
-    bar_h = 44 + pad_y * 2
+    # ── 10. Names pill bar ────────────────────────────────────────────────────
     bar_x = (W - bar_w) // 2
-    bar_y = sub_y + len(sub_lines) * sub_line_h + 18
-
     bar_overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     bar_draw = ImageDraw.Draw(bar_overlay)
     bar_draw.rounded_rectangle(
@@ -294,6 +305,6 @@ def create_episode_thumbnail(
     draw = ImageDraw.Draw(final)
     draw.text((bar_x + pad_x, bar_y + pad_y), names_text, fill=(20, 20, 20), font=bar_font)
 
-    # ── 9. Save ───────────────────────────────────────────────────────────────
+    # ── 11. Save ──────────────────────────────────────────────────────────────
     final.save(output_path, "JPEG", quality=95)
     return output_path
