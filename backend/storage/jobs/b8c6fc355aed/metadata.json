@@ -1,0 +1,130 @@
+{
+  "id": "b8c6fc355aed",
+  "status": "completed",
+  "progress": 100,
+  "filename": "videoplayback (1).mp4",
+  "steps": [
+    {
+      "name": "transcription",
+      "status": "completed",
+      "message": "Transcribed 1271 words (english)"
+    },
+    {
+      "name": "ai_planning",
+      "status": "completed",
+      "message": "Planned 3 highlight bites and 3 shorts"
+    },
+    {
+      "name": "concept_ideation",
+      "status": "completed",
+      "message": "All 3 shorts reviewed"
+    },
+    {
+      "name": "image_generation",
+      "status": "completed",
+      "message": "Images approved for 3 shorts"
+    },
+    {
+      "name": "thumbnail_compositing",
+      "status": "completed",
+      "message": "Thumbnails composited for 3 shorts"
+    },
+    {
+      "name": "highlight_extraction",
+      "status": "completed",
+      "message": "Highlight reel: 16s from 3 bites"
+    },
+    {
+      "name": "clip_extraction",
+      "status": "completed",
+      "message": "Extracted 3 clips"
+    },
+    {
+      "name": "video_assembly",
+      "status": "completed",
+      "message": "Assembled 4 segments at 1920×1080"
+    }
+  ],
+  "error": null,
+  "main_video": "main_video.mp4",
+  "main_thumbnail": "main_thumbnail.jpg",
+  "clips": [],
+  "highlight": {
+    "duration": 16.000000000000014,
+    "clip_file": "highlight.mp4"
+  },
+  "shorts": [
+    {
+      "index": 0,
+      "start_time": 26.0,
+      "end_time": 69.0,
+      "score": 0.9,
+      "topic": "Collaboration with Indian IT companies for mutual growth",
+      "clip_file": "short_0_with_thumb.mp4",
+      "thumbnail_files": [
+        "short_0_thumbnail.jpg"
+      ]
+    },
+    {
+      "index": 1,
+      "start_time": 99.5,
+      "end_time": 141.0,
+      "score": 1.0,
+      "topic": "The metaphor of AI development and the steam engine",
+      "clip_file": "short_1_with_thumb.mp4",
+      "thumbnail_files": [
+        "short_1_thumbnail.jpg"
+      ]
+    },
+    {
+      "index": 2,
+      "start_time": 176.0,
+      "end_time": 243.0,
+      "score": 1.0,
+      "topic": "Automation's impact on the future of work",
+      "clip_file": "short_2_with_thumb.mp4",
+      "thumbnail_files": [
+        "short_2_thumbnail.jpg"
+      ]
+    }
+  ],
+  "thumbnail_concepts": [],
+  "pending_instructions": null,
+  "enabled_features": {},
+  "step_outputs": {
+    "transcription": {
+      "word_count": 1271,
+      "language": "english",
+      "excerpt": "So I've grown up here. This is my city, Bangalore. I've grown up in the southern part. We're in the northern part of the city right now. As somebody who saw the boom of the IT services industry here, big employer, employs a lot of people, a big part of how the city grew. What is India's role in all "
+    },
+    "ai_planning": {
+      "highlight_bites_count": 3,
+      "shorts_count": 3,
+      "video_summary": "The video discusses AI's role in enhancing Indian IT companies' capabilities, the future impact of automation on jobs, and partnerships enhancing market know-how.",
+      "shorts": [
+        {
+          "title": "A New Approach to AI Partnerships",
+          "start": 26,
+          "end": 69,
+          "topic": "Collaboration with Indian IT companies for mutual growth"
+        },
+        {
+          "title": "AI and the Steam Engine",
+          "start": 99,
+          "end": 141,
+          "topic": "The metaphor of AI development and the steam engine"
+        },
+        {
+          "title": "Automation and the Future Job Landscape",
+          "start": 176,
+          "end": 243,
+          "topic": "Automation's impact on the future of work"
+        }
+      ]
+    }
+  },
+  "review_step": null,
+  "awaiting_plan": [],
+  "short_review": null,
+  "files_cleaned": false
+}
