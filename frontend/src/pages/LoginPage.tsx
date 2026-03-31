@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import client from '../api/client';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.post('/auth/login', { username, password });
+      const res = await client.post('/auth/login', { username, password });
       localStorage.setItem('auth_token', res.data.access_token);
       navigate('/');
     } catch(error:any) {
