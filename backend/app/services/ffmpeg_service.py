@@ -6,8 +6,8 @@ from pathlib import Path
 from app.config import settings
 
 # Resolve full paths at startup — works on Linux (/usr/bin) and Mac (/opt/homebrew/bin)
-FFMPEG = shutil.which(FFMPEG) or "/opt/homebrew/bin/ffmpeg"
-FFPROBE = shutil.which(FFPROBE) or "/opt/homebrew/bin/ffprobe"
+FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
+FFPROBE = shutil.which("ffprobe") or "/opt/homebrew/bin/ffprobe"
 
 
 def get_video_duration(video_path: str) -> float:
