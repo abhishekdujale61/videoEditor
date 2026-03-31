@@ -232,7 +232,7 @@ export default function ShortReviewPage() {
               </div>
             ) : imageUrl ? (
               <img
-                src={`${imageUrl}?v=${localIteration}`}
+                src={`${imageUrl}&v=${localIteration}`}
                 alt="Generated thumbnail background"
                 className="w-full h-full object-cover"
               />
