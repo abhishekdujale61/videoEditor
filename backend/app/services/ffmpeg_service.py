@@ -1,14 +1,19 @@
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
 from app.config import settings
 
+# Resolve full paths at startup — works on Linux (/usr/bin) and Mac (/opt/homebrew/bin)
+FFMPEG = shutil.which(FFMPEG) or "/opt/homebrew/bin/ffmpeg"
+FFPROBE = shutil.which(FFPROBE) or "/opt/homebrew/bin/ffprobe"
+
 
 def get_video_duration(video_path: str) -> float:
     result = subprocess.run(
         [
-            "ffprobe", "-v", "error",
+            FFPROBE, "-v", "error",
             "-show_entries", "format=duration",
             "-of", "default=noprint_wrappers=1:nokey=1",
             video_path,
@@ -21,7 +26,7 @@ def get_video_duration(video_path: str) -> float:
 def get_video_resolution(video_path: str) -> tuple[int, int]:
     result = subprocess.run(
         [
-            "ffprobe", "-v", "error",
+            FFPROBE, "-v", "error",
             "-select_streams", "v:0",
             "-show_entries", "stream=width,height",
             "-of", "csv=s=x:p=0",
@@ -47,7 +52,7 @@ def concat_with_intro_outro(video_path: str, output_path: str) -> str:
     if len(segments) == 1:
         # No intro/outro, just copy
         subprocess.run(
-            ["ffmpeg", "-y", "-i", video_path, "-c", "copy", output_path],
+            [FFMPEG, "-y", "-i", video_path, "-c", "copy", output_path],
             capture_output=True, check=True,
         )
         return output_path
@@ -67,7 +72,7 @@ def concat_with_intro_outro(video_path: str, output_path: str) -> str:
             intermediate = str(Path(output_path).parent / f"_seg_{i}.mp4")
             subprocess.run(
                 [
-                    "ffmpeg", "-y", "-i", seg,
+                    FFMPEG, "-y", "-i", seg,
                     "-vf", f"scale={target_w}:{target_h}:force_original_aspect_ratio=decrease,pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2",
                     "-c:v", "libx264", "-preset", "fast", "-crf", "23",
                     "-c:a", "aac", "-ar", "44100", "-ac", "2",
@@ -86,7 +91,7 @@ def concat_with_intro_outro(video_path: str, output_path: str) -> str:
 
         subprocess.run(
             [
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                FFMPEG, "-y", "-f", "concat", "-safe", "0",
                 "-i", concat_file2,
                 "-c", "copy",
                 output_path,
@@ -107,7 +112,7 @@ def concat_with_intro_outro(video_path: str, output_path: str) -> str:
 def extract_clip(video_path: str, start_time: float, duration: float, output_path: str) -> str:
     subprocess.run(
         [
-            "ffmpeg", "-y",
+            FFMPEG, "-y",
             "-ss", str(start_time),
             "-i", video_path,
             "-t", str(duration),
@@ -123,7 +128,7 @@ def extract_clip(video_path: str, start_time: float, duration: float, output_pat
 def extract_frame(video_path: str, timestamp: float, output_path: str) -> str:
     subprocess.run(
         [
-            "ffmpeg", "-y",
+            FFMPEG, "-y",
             "-ss", str(timestamp),
             "-i", video_path,
             "-frames:v", "1",
@@ -139,7 +144,7 @@ def extract_audio(video_path: str, output_path: str) -> str:
     """Extract audio from video as mono MP3 at 16kHz for Whisper (stays under 25MB limit)."""
     subprocess.run(
         [
-            "ffmpeg", "-y",
+            FFMPEG, "-y",
             "-i", video_path,
             "-vn",
             "-acodec", "libmp3lame",
@@ -160,7 +165,7 @@ def concat_clips(clip_paths: list[str], output_path: str) -> str:
 
     if len(clip_paths) == 1:
         subprocess.run(
-            ["ffmpeg", "-y", "-i", clip_paths[0], "-c", "copy", output_path],
+            [FFMPEG, "-y", "-i", clip_paths[0], "-c", "copy", output_path],
             capture_output=True, check=True,
         )
         return output_path
@@ -173,7 +178,7 @@ def concat_clips(clip_paths: list[str], output_path: str) -> str:
             intermediate = str(out_dir / f"_concat_seg_{i}.mp4")
             subprocess.run(
                 [
-                    "ffmpeg", "-y", "-i", clip,
+                    FFMPEG, "-y", "-i", clip,
                     "-c:v", "libx264", "-preset", "fast", "-crf", "23",
                     "-c:a", "aac", "-ar", "44100", "-ac", "2",
                     "-r", "30",
@@ -190,7 +195,7 @@ def concat_clips(clip_paths: list[str], output_path: str) -> str:
 
         subprocess.run(
             [
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                FFMPEG, "-y", "-f", "concat", "-safe", "0",
                 "-i", concat_file,
                 "-c", "copy",
                 output_path,
@@ -215,7 +220,7 @@ def create_video_from_image_audio(
     """Create a video from a static image with an audio track."""
     subprocess.run(
         [
-            "ffmpeg", "-y",
+            FFMPEG, "-y",
             "-loop", "1",
             "-i", image_path,
             "-i", audio_path,
@@ -250,7 +255,7 @@ def concat_normalized(segments: list[str], output_path: str, reference_path: str
             intermediate = str(out_dir / f"_norm_{i}.mp4")
             proc = subprocess.run(
                 [
-                    "ffmpeg", "-y", "-i", seg,
+                    FFMPEG, "-y", "-i", seg,
                     "-vf", (
                         f"scale={target_w}:{target_h}:"
                         "force_original_aspect_ratio=decrease,"
@@ -275,7 +280,7 @@ def concat_normalized(segments: list[str], output_path: str, reference_path: str
 
         subprocess.run(
             [
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                FFMPEG, "-y", "-f", "concat", "-safe", "0",
                 "-i", concat_file,
                 "-c", "copy",
                 output_path,
@@ -296,7 +301,7 @@ def create_still_video(image_path: str, duration: float, reference_video_path: s
     w, h = get_video_resolution(reference_video_path)
     subprocess.run(
         [
-            "ffmpeg", "-y",
+            FFMPEG, "-y",
             "-loop", "1",
             "-i", image_path,
             "-f", "lavfi",
