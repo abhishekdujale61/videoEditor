@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useJobPolling } from '../hooks/useJobPolling';
 import PipelineProgress from '../components/processing/PipelineProgress';
 import {
-  AlertCircle, CheckCircle2, Clock, PauseCircle, Send, ChevronRight, FileText, Layers,
+  AlertCircle, CheckCircle2, Clock, PauseCircle, Send, ChevronRight,
 } from 'lucide-react';
 import { pauseJob, submitInstructions } from '../api/videoApi';
 import type { Job } from '../types/job';
@@ -165,27 +165,6 @@ function StepReviewPanel({
   );
 }
 
-// ── Inline completed-step output (shown in progress list) ─────────────────
-function CompletedStepDetail({ stepName, output }: { stepName: string; output: any }) {
-  if (!output) return null;
-  if (stepName === 'transcription') {
-    return (
-      <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-        <FileText className="w-3 h-3" />
-        {output.word_count?.toLocaleString()} words · {output.language}
-      </div>
-    );
-  }
-  if (stepName === 'ai_planning') {
-    return (
-      <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-        <Layers className="w-3 h-3" />
-        {output.shorts_count} shorts · {output.highlight_bites_count} bites planned
-      </div>
-    );
-  }
-  return null;
-}
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function ProcessingPage() {
