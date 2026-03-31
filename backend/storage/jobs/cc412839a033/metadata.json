@@ -1,0 +1,130 @@
+{
+  "id": "cc412839a033",
+  "status": "completed",
+  "progress": 100,
+  "filename": "Vered x Girish Podcast.m4v",
+  "steps": [
+    {
+      "name": "transcription",
+      "status": "completed",
+      "message": "Transcribed 3998 words (english)"
+    },
+    {
+      "name": "ai_planning",
+      "status": "completed",
+      "message": "Planned 3 highlight bites and 3 shorts"
+    },
+    {
+      "name": "concept_ideation",
+      "status": "completed",
+      "message": "All 3 shorts reviewed"
+    },
+    {
+      "name": "image_generation",
+      "status": "completed",
+      "message": "Images approved for 3 shorts"
+    },
+    {
+      "name": "thumbnail_compositing",
+      "status": "completed",
+      "message": "Thumbnails composited for 3 shorts"
+    },
+    {
+      "name": "highlight_extraction",
+      "status": "completed",
+      "message": "Highlight reel: 17s from 3 bites"
+    },
+    {
+      "name": "clip_extraction",
+      "status": "completed",
+      "message": "Extracted 3 clips"
+    },
+    {
+      "name": "video_assembly",
+      "status": "completed",
+      "message": "Assembled 4 segments at 1920×1080"
+    }
+  ],
+  "error": null,
+  "main_video": "main_video.mp4",
+  "main_thumbnail": "main_thumbnail.jpg",
+  "clips": [],
+  "highlight": {
+    "duration": 16.99999999999997,
+    "clip_file": "highlight.mp4"
+  },
+  "shorts": [
+    {
+      "index": 0,
+      "start_time": 31.6,
+      "end_time": 72.2,
+      "score": 0.9,
+      "topic": "Navigating as a Non-Native Speaker",
+      "clip_file": "short_0_with_thumb.mp4",
+      "thumbnail_files": [
+        "short_0_thumbnail.jpg"
+      ]
+    },
+    {
+      "index": 1,
+      "start_time": 144.7,
+      "end_time": 177.3,
+      "score": 0.8,
+      "topic": "The CIFAR AI Chair Role",
+      "clip_file": "short_1_with_thumb.mp4",
+      "thumbnail_files": [
+        "short_1_thumbnail.jpg"
+      ]
+    },
+    {
+      "index": 2,
+      "start_time": 110.8,
+      "end_time": 131.2,
+      "score": 0.8,
+      "topic": "Effective Research Communication",
+      "clip_file": "short_2_with_thumb.mp4",
+      "thumbnail_files": [
+        "short_2_thumbnail.jpg"
+      ]
+    }
+  ],
+  "thumbnail_concepts": [],
+  "pending_instructions": null,
+  "enabled_features": {},
+  "step_outputs": {
+    "transcription": {
+      "word_count": 3998,
+      "language": "english",
+      "excerpt": "life of like how people behave and think like the other one was a game theory. So even today, I would say that my research leans a lot more towards the social aspects of language. Beautiful. Rather than like the theoretic or more like math heavy notions of machine learning. Cool. Cool. So about your"
+    },
+    "ai_planning": {
+      "highlight_bites_count": 3,
+      "shorts_count": 3,
+      "video_summary": "The discussion covers overcoming language barriers in research, the importance of simplifying complex research for broader audiences, and the role of the CIFAR AI Chair in advancing AI innovation and training in Canada.",
+      "shorts": [
+        {
+          "title": "Overcoming Language Barriers in Research",
+          "start": 31,
+          "end": 72,
+          "topic": "Navigating as a Non-Native Speaker"
+        },
+        {
+          "title": "Leading Canada's AI Future",
+          "start": 144,
+          "end": 177,
+          "topic": "The CIFAR AI Chair Role"
+        },
+        {
+          "title": "Simplifying Complex Research",
+          "start": 110,
+          "end": 131,
+          "topic": "Effective Research Communication"
+        }
+      ]
+    }
+  },
+  "review_step": null,
+  "awaiting_plan": [],
+  "short_review": null,
+  "files_cleaned": false
+}

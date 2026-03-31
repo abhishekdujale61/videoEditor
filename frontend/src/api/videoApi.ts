@@ -161,10 +161,20 @@ export async function deleteAsset(name: string): Promise<void> {
   await client.delete(`/api/assets/${name}`);
 }
 
+export function getSourceUrl(jobId: string): string {
+  const token = localStorage.getItem('auth_token');
+  const query = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `/api/jobs/${jobId}/source${query}`;
+}
+
 export function getDownloadUrl(jobId: string, asset: string): string {
-  return `/api/download/${jobId}/${asset}`;
+  const token = localStorage.getItem('auth_token');
+  const query = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `/api/download/${jobId}/${asset}${query}`;
 }
 
 export function getDownloadAllUrl(jobId: string): string {
-  return `/api/download/${jobId}/all`;
+  const token = localStorage.getItem('auth_token');
+  const query = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `/api/download/${jobId}/all${query}`;
 }

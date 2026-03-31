@@ -29,18 +29,6 @@ async def list_jobs():
     return job_manager.list_jobs()
 
 
-@router.get("/api/jobs/{job_id}/source")
-async def get_source_video(job_id: str):
-    """Serve the original uploaded video so the frontend can preview clips via time fragments."""
-    job = job_manager.get_job(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    # File is saved as {job_id}.{ext} — find it by glob
-    for p in settings.uploads_path.glob(f"{job_id}.*"):
-        if p.suffix.lower() in (".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"):
-            return FileResponse(p, media_type="video/mp4", filename=p.name)
-    raise HTTPException(status_code=404, detail="Source video not found")
-
 
 @router.post("/api/jobs/{job_id}/pause")
 async def pause_job(job_id: str):

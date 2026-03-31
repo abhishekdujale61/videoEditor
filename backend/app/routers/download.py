@@ -2,13 +2,25 @@ import io
 import zipfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
+from jose import JWTError, jwt
 
 from app.config import settings
 from app.dependencies import job_manager
 
 router = APIRouter()
+
+
+def _verify_query_token(token: str | None) -> bool:
+    """Validate a JWT passed as a query parameter."""
+    if not token:
+        return False
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        return bool(payload.get("sub"))
+    except JWTError:
+        return False
 
 
 def _resolve_asset(job_id: str, asset: str) -> Path:
@@ -50,9 +62,25 @@ def _resolve_asset(job_id: str, asset: str) -> Path:
     raise HTTPException(status_code=404, detail=f"Asset '{asset}' not found")
 
 
+@router.get("/api/jobs/{job_id}/source")
+async def get_source_video(job_id: str, token: str | None = Query(None)):
+    """Serve the original uploaded video for in-browser preview (supports ?token= auth)."""
+    if not _verify_query_token(token):
+        raise HTTPException(status_code=403, detail="Not authenticated")
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    for p in settings.uploads_path.glob(f"{job_id}.*"):
+        if p.suffix.lower() in (".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"):
+            return FileResponse(p, media_type="video/mp4", filename=p.name)
+    raise HTTPException(status_code=404, detail="Source video not found")
+
+
 # NOTE: /all must be registered before /{asset} to avoid route shadowing
 @router.get("/api/download/{job_id}/all")
-async def download_all(job_id: str):
+async def download_all(job_id: str, token: str | None = Query(None)):
+    if not _verify_query_token(token):
+        raise HTTPException(status_code=403, detail="Not authenticated")
     job = job_manager.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -109,7 +137,9 @@ async def download_all(job_id: str):
 
 
 @router.get("/api/download/{job_id}/{asset}")
-async def download_asset(job_id: str, asset: str):
+async def download_asset(job_id: str, asset: str, token: str | None = Query(None)):
+    if not _verify_query_token(token):
+        raise HTTPException(status_code=403, detail="Not authenticated")
     path = _resolve_asset(job_id, asset)
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found on disk")

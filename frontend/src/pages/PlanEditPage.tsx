@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
-import { getJob, submitPlan } from '../api/videoApi';
+import { getJob, submitPlan, getSourceUrl } from '../api/videoApi';
 import type { ShortPlanItem } from '../api/videoApi';
 import { Plus, Trash2, ChevronRight, Loader2, Sparkles, Clock } from 'lucide-react';
 
@@ -35,7 +35,7 @@ function ClipPreview({ jobId, startTime, endTime }: { jobId: string; startTime: 
     <div className="relative bg-black rounded-xl overflow-hidden border border-gray-800">
       <video
         ref={ref}
-        src={`/api/jobs/${jobId}/source`}
+        src={getSourceUrl(jobId!)}
         preload="none"
         controls
         onLoadedMetadata={() => { if (ref.current) ref.current.currentTime = startTime; }}

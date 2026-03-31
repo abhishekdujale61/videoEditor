@@ -27,7 +27,7 @@ app.include_router(upload.router, dependencies=_auth)
 app.include_router(jobs.router, dependencies=_auth)
 app.include_router(concepts.router, dependencies=_auth)
 app.include_router(shorts.router, dependencies=_auth)
-app.include_router(download.router, dependencies=_auth)
+app.include_router(download.router)  # auth handled per-endpoint (supports ?token= for media)
 app.include_router(assets.router, dependencies=_auth)
 
 
