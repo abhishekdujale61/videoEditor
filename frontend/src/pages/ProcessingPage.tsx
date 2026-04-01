@@ -223,6 +223,12 @@ export default function ProcessingPage() {
   }, [job?.status, jobId, navigate]);
 
   useEffect(() => {
+    if (job?.status === 'awaiting_thumbnail_review' && jobId) {
+      navigate(`/thumbnail-review/${jobId}`, { replace: true });
+    }
+  }, [job?.status, jobId, navigate]);
+
+  useEffect(() => {
     if (job?.status === 'completed') {
       navigate(`/results/${job.id}`, { replace: true });
     }

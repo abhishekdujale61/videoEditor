@@ -6,6 +6,7 @@ export type JobStatus =
   | 'awaiting_instructions'
   | 'awaiting_plan_edit'
   | 'awaiting_short_review'
+  | 'awaiting_thumbnail_review'
   | 'completed'
   | 'failed';
 
@@ -64,6 +65,16 @@ export interface ShortReviewData {
   clip_file: string | null;
 }
 
+export interface ThumbnailReviewData {
+  review_type: 'short' | 'main';
+  thumbnail_file: string;
+  title: string;
+  subtitle: string;
+  short_index: number;
+  total_shorts: number;
+  iteration: number;
+}
+
 export interface Job {
   id: string;
   status: JobStatus;
@@ -83,6 +94,7 @@ export interface Job {
   review_step: string | null;
   awaiting_plan: any[];
   short_review: ShortReviewData | null;
+  thumbnail_review: ThumbnailReviewData | null;
 }
 
 export interface JobStatusResponse {

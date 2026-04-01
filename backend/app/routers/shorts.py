@@ -5,12 +5,14 @@ from fastapi import APIRouter, HTTPException
 from app.config import settings
 from app.dependencies import job_manager
 from app.models import (
+    ApproveThumbnailRequest,
     ApproveShortRequest,
     JobStatus,
+    RedoThumbnailRequest,
     RegenerateImageRequest,
     SubmitPlanRequest,
 )
-from app.services import image_generation_service
+from app.services import image_generation_service, template_thumbnail
 
 router = APIRouter()
 
@@ -99,3 +101,74 @@ async def approve_short(job_id: str, body: ApproveShortRequest):
     }
     job_manager.approve_short(job_id, approved_data)
     return {"ok": True, "message": f"Short {review.short_index} approved"}
+
+
+# ── Composited thumbnail review endpoints ────────────────────────────────────
+
+@router.post("/api/jobs/{job_id}/redo-thumbnail")
+def redo_thumbnail(job_id: str, body: RedoThumbnailRequest):
+    """Recomposite the thumbnail with a new title/subtitle (fast PIL, no DALL-E).
+
+    The job must be in AWAITING_THUMBNAIL_REVIEW status. The pipeline thread
+    remains blocked — the user stays on the review page until they approve.
+    """
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != JobStatus.AWAITING_THUMBNAIL_REVIEW:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job is not awaiting thumbnail review (status: {job.status})",
+        )
+
+    review = job.thumbnail_review
+    if not review:
+        raise HTTPException(status_code=400, detail="No active thumbnail review")
+
+    job_dir = settings.jobs_path / job_id
+    out_path = str(job_dir / review.thumbnail_file)
+    bg = review.bg_path or None
+
+    try:
+        template_thumbnail.create_episode_thumbnail(
+            output_path=out_path,
+            title=body.title,
+            subtitle=body.subtitle,
+            guest_name=review.guest_name,
+            host_photo_path=review.host_photo_path if review.review_type == "main" else None,
+            guest_photo_path=review.guest_photo_path if review.review_type == "main" else None,
+            bg_template_path=bg if bg and Path(bg).exists() else None,
+            logo_path=review.logo_path,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Thumbnail compositing failed: {e}")
+
+    iteration = review.iteration + 1
+    job_manager.update_thumbnail_review(job_id, title=body.title, subtitle=body.subtitle, iteration=iteration)
+
+    return {"ok": True, "thumbnail_file": review.thumbnail_file, "iteration": iteration}
+
+
+@router.post("/api/jobs/{job_id}/approve-thumbnail")
+async def approve_thumbnail(job_id: str):
+    """Approve the current composited thumbnail and resume the pipeline."""
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != JobStatus.AWAITING_THUMBNAIL_REVIEW:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job is not awaiting thumbnail review (status: {job.status})",
+        )
+
+    review = job.thumbnail_review
+    if not review:
+        raise HTTPException(status_code=400, detail="No active thumbnail review")
+
+    msg = (
+        f"Short {review.short_index + 1}/{review.total_shorts} thumbnail approved"
+        if review.review_type == "short"
+        else "Main thumbnail approved"
+    )
+    job_manager.approve_thumbnail(job_id)
+    return {"ok": True, "message": msg}

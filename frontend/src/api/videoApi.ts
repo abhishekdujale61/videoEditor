@@ -29,6 +29,42 @@ export async function uploadVideo(
   return data;
 }
 
+const CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB
+const CHUNK_TIMEOUT_MS = 5 * 60 * 1000; // 5 min per chunk (covers slow connections)
+const MAX_CHUNK_RETRIES = 3;
+
+async function _uploadChunkWithRetry(
+  job_id: string,
+  index: number,
+  totalChunks: number,
+  blob: Blob,
+  filename: string,
+  onChunkProgress: (loaded: number, total: number) => void,
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_CHUNK_RETRIES; attempt++) {
+    const form = new FormData();
+    form.append('chunk_index', String(index));
+    form.append('total_chunks', String(totalChunks));
+    form.append('file', blob, filename);
+    try {
+      await client.post(`/api/upload/chunk/${job_id}`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: CHUNK_TIMEOUT_MS,
+        onUploadProgress: (e) => onChunkProgress(e.loaded, e.total ?? blob.size),
+      });
+      return; // success
+    } catch (err) {
+      lastError = err;
+      // Brief back-off before retry (0 ms, 1 s, 2 s)
+      if (attempt < MAX_CHUNK_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, attempt * 1000));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export async function uploadVideoWithAssets(
   file: File,
   guestPhoto?: File,
@@ -40,38 +76,52 @@ export async function uploadVideoWithAssets(
   trimEnd?: number,
   features?: Record<string, boolean>,
 ): Promise<UploadResponse> {
-  const formData = new FormData();
-  formData.append('file', file);
-  if (guestPhoto) {
-    formData.append('guest_photo', guestPhoto);
-  }
-  if (guestName?.trim()) {
-    formData.append('guest_name', guestName.trim());
-  }
-  if (introVideo) {
-    formData.append('intro_video', introVideo);
-  }
-  if (outroVideo) {
-    formData.append('outro_video', outroVideo);
-  }
-  if (trimStart !== undefined && trimStart > 0) {
-    formData.append('trim_start', String(trimStart));
-  }
-  if (trimEnd !== undefined && trimEnd > 0) {
-    formData.append('trim_end', String(trimEnd));
-  }
-  if (features) {
-    formData.append('features', JSON.stringify(features));
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+  // Step 1 — init: validate extension + size on the server before any data moves
+  const initForm = new FormData();
+  initForm.append('filename', file.name);
+  initForm.append('file_size', String(file.size));
+  const { data: initData } = await client.post<{ job_id: string }>('/api/upload/init', initForm);
+  const { job_id } = initData;
+
+  // Step 2 — upload chunks sequentially with per-chunk retry
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const blob = file.slice(start, Math.min(start + CHUNK_SIZE, file.size));
+
+    await _uploadChunkWithRetry(
+      job_id, i, totalChunks, blob, file.name,
+      (loaded, total) => {
+        if (onProgress) {
+          const chunkDone = loaded / total;
+          // Reserve last 5% for the finalize/assembly step
+          const overall = ((i + chunkDone) / totalChunks) * 95;
+          onProgress(Math.round(overall));
+        }
+      },
+    );
   }
 
-  const { data } = await client.post<UploadResponse>('/api/upload', formData, {
+  // Step 3 — finalize: server assembles chunks, then starts the pipeline
+  const finalForm = new FormData();
+  finalForm.append('filename', file.name);
+  finalForm.append('total_chunks', String(totalChunks));
+  if (guestPhoto) finalForm.append('guest_photo', guestPhoto);
+  if (guestName?.trim()) finalForm.append('guest_name', guestName.trim());
+  if (introVideo) finalForm.append('intro_video', introVideo);
+  if (outroVideo) finalForm.append('outro_video', outroVideo);
+  if (trimStart !== undefined && trimStart > 0) finalForm.append('trim_start', String(trimStart));
+  if (trimEnd !== undefined && trimEnd > 0) finalForm.append('trim_end', String(trimEnd));
+  if (features) finalForm.append('features', JSON.stringify(features));
+
+  // Assembly can take a few seconds for very large files — use a generous timeout
+  const { data } = await client.post<UploadResponse>(`/api/upload/finalize/${job_id}`, finalForm, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    onUploadProgress: (e) => {
-      if (e.total && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    },
+    timeout: 10 * 60 * 1000, // 10 min for assembly of a large file
   });
+
+  onProgress?.(100);
   return data;
 }
 
@@ -137,6 +187,19 @@ export async function approveShort(
     concept_id: conceptId,
     image_prompt: imagePrompt,
   });
+}
+
+export async function redoThumbnail(
+  jobId: string,
+  title: string,
+  subtitle: string,
+): Promise<{ thumbnail_file: string; iteration: number }> {
+  const { data } = await client.post(`/api/jobs/${jobId}/redo-thumbnail`, { title, subtitle });
+  return data;
+}
+
+export async function approveThumbnail(jobId: string): Promise<void> {
+  await client.post(`/api/jobs/${jobId}/approve-thumbnail`);
 }
 
 export interface AssetStatus {

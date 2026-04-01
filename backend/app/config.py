@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     storage_dir: str = "storage"
-    # max_upload_size_mb: int = 500
+    max_upload_size_gb: float = 50.0   # maximum allowed upload size in gigabytes
     allowed_extensions: str = ".mp4,.mov,.avi,.mkv,.webm,.m4v"
     clip_duration: int = 30
     num_clips: int = 3
@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     @property
     def logo_path(self) -> Path:
         return self.assets_path / "logo.png"
+
+    @property
+    def max_upload_size_bytes(self) -> int:
+        return int(self.max_upload_size_gb * 1024 ** 3)
 
     @property
     def allowed_ext_list(self) -> list[str]:

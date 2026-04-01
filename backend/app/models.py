@@ -27,8 +27,9 @@ class JobStatus(str, Enum):
     PROCESSING = "processing"
     AWAITING_REVIEW = "awaiting_review"
     AWAITING_INSTRUCTIONS = "awaiting_instructions"
-    AWAITING_PLAN_EDIT = "awaiting_plan_edit"        # user edits AI-suggested shorts plan
-    AWAITING_SHORT_REVIEW = "awaiting_short_review"  # per-short concept+image review
+    AWAITING_PLAN_EDIT = "awaiting_plan_edit"              # user edits AI-suggested shorts plan
+    AWAITING_SHORT_REVIEW = "awaiting_short_review"        # per-short concept+image review
+    AWAITING_THUMBNAIL_REVIEW = "awaiting_thumbnail_review"  # review composited thumbnail
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -77,6 +78,23 @@ class ShortReviewData(BaseModel):
     clip_file: str | None = None    # extracted clip filename for in-review preview
 
 
+class ThumbnailReviewData(BaseModel):
+    """State for human-in-the-loop review of a composited thumbnail."""
+    review_type: str            # "short" | "main"
+    thumbnail_file: str         # filename relative to job_dir
+    title: str
+    subtitle: str
+    short_index: int = 0
+    total_shorts: int = 0
+    iteration: int = 0
+    # stored for redo recompositing (absolute paths, empty string = absent)
+    bg_path: str = ""
+    guest_name: str = ""
+    guest_photo_path: str | None = None
+    host_photo_path: str | None = None
+    logo_path: str | None = None
+
+
 class ShortMeta(BaseModel):
     index: int
     start_time: float
@@ -111,6 +129,7 @@ class JobResponse(BaseModel):
     review_step: str | None = None       # which step is currently paused for review
     awaiting_plan: list[dict] = []       # AI-suggested shorts awaiting user edit
     short_review: ShortReviewData | None = None  # current per-short review state
+    thumbnail_review: ThumbnailReviewData | None = None  # composited thumbnail review state
     files_cleaned: bool = False          # True after user downloads and files are deleted
 
 
@@ -163,3 +182,12 @@ class ApproveShortRequest(BaseModel):
     title: str
     concept_id: str
     image_prompt: str
+
+
+class RedoThumbnailRequest(BaseModel):
+    title: str
+    subtitle: str
+
+
+class ApproveThumbnailRequest(BaseModel):
+    pass  # approve the thumbnail as currently composited

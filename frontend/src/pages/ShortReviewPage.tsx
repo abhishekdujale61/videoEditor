@@ -55,7 +55,8 @@ export default function ShortReviewPage() {
   // Navigate when job transitions away
   useEffect(() => {
     if (!job) return;
-    if (job.status === 'awaiting_plan_edit') navigate(`/plan-edit/${jobId}`, { replace: true });
+    if (job.status === 'awaiting_thumbnail_review') navigate(`/thumbnail-review/${jobId}`, { replace: true });
+    else if (job.status === 'awaiting_plan_edit') navigate(`/plan-edit/${jobId}`, { replace: true });
     else if (job.status === 'completed') navigate(`/results/${jobId}`, { replace: true });
     else if (job.status === 'failed') navigate(`/processing/${jobId}`, { replace: true });
   }, [job?.status, jobId, navigate]);

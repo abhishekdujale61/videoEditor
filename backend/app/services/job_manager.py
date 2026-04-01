@@ -16,6 +16,7 @@ from app.models import (
     StepName,
     StepStatus,
     ThumbnailConcept,
+    ThumbnailReviewData,
 )
 
 DEFAULT_FEATURES = {
@@ -46,6 +47,9 @@ class JobManager:
         self._short_review_events: dict[str, threading.Event] = {}
         self._short_review_events_lock = threading.Lock()
         self._approved_short_data: dict[str, dict] = {}
+        # Thumbnail review HITL state
+        self._thumbnail_review_events: dict[str, threading.Event] = {}
+        self._thumbnail_review_events_lock = threading.Lock()
         self._load_persisted_jobs()
 
     def _load_persisted_jobs(self):
@@ -353,4 +357,48 @@ class JobManager:
             job = self._jobs.get(job_id)
             if job:
                 job.shorts.append(short)
+                self._persist(job_id)
+
+    # ── Composited thumbnail review HITL ────────────────────────────────────
+
+    def set_awaiting_thumbnail_review(self, job_id: str, review_data: ThumbnailReviewData):
+        """Pause pipeline for human review of a fully composited thumbnail."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job:
+                job.status = JobStatus.AWAITING_THUMBNAIL_REVIEW
+                job.thumbnail_review = review_data
+                self._persist(job_id)
+
+    def register_thumbnail_review_event(self, job_id: str, event: threading.Event):
+        with self._thumbnail_review_events_lock:
+            self._thumbnail_review_events[job_id] = event
+
+    def update_thumbnail_review(self, job_id: str, title: str, subtitle: str, iteration: int):
+        """Update the thumbnail review state after a redo (keeps status unchanged)."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job and job.thumbnail_review:
+                job.thumbnail_review.title = title
+                job.thumbnail_review.subtitle = subtitle
+                job.thumbnail_review.iteration = iteration
+                self._persist(job_id)
+
+    def approve_thumbnail(self, job_id: str):
+        """Resume the pipeline after thumbnail approval."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job:
+                job.status = JobStatus.PROCESSING
+                self._persist(job_id)
+        with self._thumbnail_review_events_lock:
+            event = self._thumbnail_review_events.pop(job_id, None)
+        if event:
+            event.set()
+
+    def clear_thumbnail_review(self, job_id: str):
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job:
+                job.thumbnail_review = None
                 self._persist(job_id)

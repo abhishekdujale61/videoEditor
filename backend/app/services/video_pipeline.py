@@ -22,6 +22,7 @@ from app.models import (
     StepName,
     StepStatus,
     ThumbnailConcept,
+    ThumbnailReviewData,
 )
 from app.services import ffmpeg_service, ai_analyzer
 from app.services import transcription_service, image_generation_service, template_thumbnail
@@ -171,20 +172,45 @@ def _run_per_short_pipeline(
             )
             ai_bg_path = str(job_dir / approved_image_filename)
             out_file = f"short_{i}_thumbnail.jpg"
+            short_subtitle = short.get("topic", "")[:120]
             try:
                 template_thumbnail.create_episode_thumbnail(
                     output_path=str(job_dir / out_file),
                     title=approved_title,
-                    subtitle=short.get("topic", "")[:120],
+                    subtitle=short_subtitle,
                     guest_name=guest_name,
-                    host_photo_path=host_photo,
-                    guest_photo_path=guest_photo_path,
+                    host_photo_path=None,
+                    guest_photo_path=None,
                     bg_template_path=ai_bg_path if Path(ai_bg_path).exists() else bg_tmpl,
                     logo_path=logo,
                 )
                 thumbnail_files = [out_file]
             except Exception as e:
                 print(f"[pipeline] Thumbnail compositing failed for short {i}: {e}")
+
+        # ── 3b. Human review of composited short thumbnail ───────────────────
+        if do_thumbnail and thumbnail_files:
+            effective_bg = ai_bg_path if (approved_image_filename and Path(ai_bg_path).exists()) else (bg_tmpl or "")
+            review_data = ThumbnailReviewData(
+                review_type="short",
+                thumbnail_file=thumbnail_files[0],
+                title=approved_title,
+                subtitle=short_subtitle,
+                short_index=i,
+                total_shorts=total,
+                bg_path=effective_bg,
+                guest_name=guest_name,
+                logo_path=logo,
+            )
+            th_event = threading.Event()
+            job_manager.register_thumbnail_review_event(job_id, th_event)
+            job_manager.set_awaiting_thumbnail_review(job_id, review_data)
+            th_event.wait()
+            # Read back any text edits the user made during review
+            updated = job_manager.get_job(job_id)
+            if updated and updated.thumbnail_review:
+                approved_title = updated.thumbnail_review.title
+            job_manager.clear_thumbnail_review(job_id)
 
         # ── 4. Prepend 3-second thumbnail still to the clip ──────────────────
         if clip_file and thumbnail_files:
@@ -633,6 +659,30 @@ def run_pipeline(
                 guest_name=guest_name,
                 guest_photo_path=guest_photo_path,
             )
+
+        # ── Human review of composited main thumbnail ──
+        if features.get("thumbnail", True) and main_thumbnail_file:
+            host_photo = str(settings.host_png_path) if settings.host_png_path.exists() else None
+            bg_tmpl_main = str(settings.bg_template_path) if settings.bg_template_path.exists() else None
+            logo_main = str(settings.logo_path) if settings.logo_path.exists() else None
+            review_data = ThumbnailReviewData(
+                review_type="main",
+                thumbnail_file=main_thumbnail_file,
+                title=episode_title,
+                subtitle=episode_subtitle,
+                short_index=0,
+                total_shorts=0,
+                bg_path=bg_tmpl_main or "",
+                guest_name=guest_name,
+                guest_photo_path=guest_photo_path,
+                host_photo_path=host_photo,
+                logo_path=logo_main,
+            )
+            th_event = threading.Event()
+            job_manager.register_thumbnail_review_event(job_id, th_event)
+            job_manager.set_awaiting_thumbnail_review(job_id, review_data)
+            th_event.wait()
+            job_manager.clear_thumbnail_review(job_id)
 
         # ── Complete job ──
         job_manager.complete_job(

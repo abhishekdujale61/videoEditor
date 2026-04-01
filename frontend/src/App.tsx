@@ -6,6 +6,7 @@ import ResultsPage from './pages/ResultsPage';
 import ConceptReviewPage from './pages/ConceptReviewPage';
 import PlanEditPage from './pages/PlanEditPage';
 import ShortReviewPage from './pages/ShortReviewPage';
+import ThumbnailReviewPage from './pages/ThumbnailReviewPage';
 import LoginPage from './pages/LoginPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/review/:jobId" element={<ConceptReviewPage />} />
           <Route path="/plan-edit/:jobId" element={<PlanEditPage />} />
           <Route path="/short-review/:jobId" element={<ShortReviewPage />} />
+          <Route path="/thumbnail-review/:jobId" element={<ThumbnailReviewPage />} />
           <Route path="/results/:jobId" element={<ResultsPage />} />
         </Route>
       </Routes>
