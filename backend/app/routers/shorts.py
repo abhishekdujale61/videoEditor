@@ -129,6 +129,8 @@ def redo_thumbnail(job_id: str, body: RedoThumbnailRequest):
     out_path = str(job_dir / review.thumbnail_file)
     bg = review.bg_path or None
 
+    thumb_size = (1080, 1920) if (review.review_type == "short" and review.shorts_orientation == "portrait") else (1920, 1080)
+
     try:
         template_thumbnail.create_episode_thumbnail(
             output_path=out_path,
@@ -139,6 +141,7 @@ def redo_thumbnail(job_id: str, body: RedoThumbnailRequest):
             guest_photo_path=review.guest_photo_path if review.review_type == "main" else None,
             bg_template_path=bg if bg and Path(bg).exists() else None,
             logo_path=review.logo_path,
+            size=thumb_size,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Thumbnail compositing failed: {e}")

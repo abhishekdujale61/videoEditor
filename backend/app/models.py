@@ -87,6 +87,7 @@ class ThumbnailReviewData(BaseModel):
     short_index: int = 0
     total_shorts: int = 0
     iteration: int = 0
+    shorts_orientation: str = "landscape"   # "landscape" (1920×1080) | "portrait" (1080×1920)
     # stored for redo recompositing (absolute paths, empty string = absent)
     bg_path: str = ""
     guest_name: str = ""

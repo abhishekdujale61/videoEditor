@@ -109,7 +109,24 @@ def concat_with_intro_outro(video_path: str, output_path: str) -> str:
     return output_path
 
 
-def extract_clip(video_path: str, start_time: float, duration: float, output_path: str) -> str:
+def extract_clip(
+    video_path: str,
+    start_time: float,
+    duration: float,
+    output_path: str,
+    orientation: str = "landscape",
+) -> str:
+    """Extract a clip, optionally cropping to portrait (9:16) format.
+
+    orientation:
+        "landscape" — keep original aspect ratio (16:9 source → 16:9 clip)
+        "portrait"  — center-crop to 9:16 then scale to 1080×1920
+    """
+    vf_args: list[str] = []
+    if orientation == "portrait":
+        # Crop a 9:16 region from the horizontal center, then scale to 1080×1920
+        vf_args = ["-vf", "crop=ih*9/16:ih:(iw-ih*9/16)/2:0,scale=1080:1920"]
+
     subprocess.run(
         [
             FFMPEG, "-y",
@@ -118,6 +135,7 @@ def extract_clip(video_path: str, start_time: float, duration: float, output_pat
             "-t", str(duration),
             "-c:v", "libx264", "-preset", "fast", "-crf", "23",
             "-c:a", "aac",
+            *vf_args,
             output_path,
         ],
         capture_output=True, check=True,

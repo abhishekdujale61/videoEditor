@@ -53,6 +53,12 @@ def _wait_for_plan(job_id: str, ai_shorts: list[dict]) -> list[dict]:
     return job_manager.get_submitted_plan(job_id) or ai_shorts
 
 
+THUMBNAIL_SIZE: dict[str, tuple[int, int]] = {
+    "landscape": (1920, 1080),
+    "portrait":  (1080, 1920),
+}
+
+
 def _run_per_short_pipeline(
     job_id: str,
     job_dir: Path,
@@ -62,6 +68,7 @@ def _run_per_short_pipeline(
     guest_photo_path: str | None,
     guest_name: str,
     features: dict,
+    shorts_orientation: str = "landscape",
 ) -> list[ShortMeta]:
     """Process each short fully, one at a time:
       concept generation → DALL-E image → human review (unlimited redos)
@@ -96,7 +103,10 @@ def _run_per_short_pipeline(
             )
             raw_clip = f"short_{i}.mp4"
             try:
-                ffmpeg_service.extract_clip(upload_path, start, end - start, str(job_dir / raw_clip))
+                ffmpeg_service.extract_clip(
+                    upload_path, start, end - start, str(job_dir / raw_clip),
+                    orientation=shorts_orientation,
+                )
                 clip_file = raw_clip
             except Exception as e:
                 print(f"[pipeline] Failed to extract short {i}: {e}")
@@ -183,6 +193,7 @@ def _run_per_short_pipeline(
                     guest_photo_path=None,
                     bg_template_path=ai_bg_path if Path(ai_bg_path).exists() else bg_tmpl,
                     logo_path=logo,
+                    size=THUMBNAIL_SIZE.get(shorts_orientation, (1920, 1080)),
                 )
                 thumbnail_files = [out_file]
             except Exception as e:
@@ -201,6 +212,7 @@ def _run_per_short_pipeline(
                 bg_path=effective_bg,
                 guest_name=guest_name,
                 logo_path=logo,
+                shorts_orientation=shorts_orientation,
             )
             th_event = threading.Event()
             job_manager.register_thumbnail_review_event(job_id, th_event)
@@ -514,6 +526,7 @@ def run_pipeline(
     trim_start: float | None = None,
     trim_end: float | None = None,
     enabled_features: dict[str, bool] | None = None,
+    shorts_orientation: str = "landscape",
 ):
     """Run the full 8-step video processing pipeline.
 
@@ -622,6 +635,7 @@ def run_pipeline(
             short_metas = _run_per_short_pipeline(
                 job_id, job_dir, shorts_plan, transcript,
                 upload_path, guest_photo_path, guest_name, features,
+                shorts_orientation=shorts_orientation,
             )
         else:
             for step_name in (StepName.CONCEPT_IDEATION, StepName.IMAGE_GENERATION,

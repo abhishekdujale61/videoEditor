@@ -75,6 +75,7 @@ export async function uploadVideoWithAssets(
   trimStart?: number,
   trimEnd?: number,
   features?: Record<string, boolean>,
+  shortsOrientation: 'landscape' | 'portrait' = 'landscape',
 ): Promise<UploadResponse> {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
@@ -114,6 +115,7 @@ export async function uploadVideoWithAssets(
   if (trimStart !== undefined && trimStart > 0) finalForm.append('trim_start', String(trimStart));
   if (trimEnd !== undefined && trimEnd > 0) finalForm.append('trim_end', String(trimEnd));
   if (features) finalForm.append('features', JSON.stringify(features));
+  finalForm.append('shorts_orientation', shortsOrientation);
 
   // Assembly can take a few seconds for very large files — use a generous timeout
   const { data } = await client.post<UploadResponse>(`/api/upload/finalize/${job_id}`, finalForm, {

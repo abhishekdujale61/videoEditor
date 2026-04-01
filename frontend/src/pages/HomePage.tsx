@@ -7,7 +7,7 @@ import type { AssetStatus } from '../api/videoApi';
 import {
   Film, Clock, CheckCircle, AlertCircle, Loader2, UserCircle2, X, Video,
   Scissors, PackageOpen, CheckCircle2, Upload, Trash2, ChevronDown,
-  Zap, Clapperboard,
+  Zap, Clapperboard, Smartphone, Monitor,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -18,7 +18,8 @@ function StatusBadge({ status }: { status: string }) {
     awaiting_review:       { icon: Clock,        color: 'text-yellow-400', label: 'Awaiting Review' },
     awaiting_instructions: { icon: Clock,        color: 'text-blue-400',   label: 'Awaiting Input' },
     awaiting_plan_edit:    { icon: Clock,        color: 'text-orange-400', label: 'Plan Review' },
-    awaiting_short_review: { icon: Clock,        color: 'text-pink-400',   label: 'Short Review' },
+    awaiting_short_review:      { icon: Clock, color: 'text-pink-400',   label: 'Short Review' },
+    awaiting_thumbnail_review:  { icon: Clock, color: 'text-cyan-400',   label: 'Thumbnail Review' },
     queued:                { icon: Clock,        color: 'text-gray-500',   label: 'Queued' },
     failed:                { icon: AlertCircle,  color: 'text-red-400',    label: 'Failed' },
   };
@@ -71,6 +72,7 @@ export default function HomePage() {
   const [features, setFeatures] = useState({
     thumbnail: true, shorts: true, highlight: true, assembly: true,
   });
+  const [shortsOrientation, setShortsOrientation] = useState<'landscape' | 'portrait'>('landscape');
   const [assets, setAssets] = useState<Record<string, AssetStatus>>({});
   const [assetUploading, setAssetUploading] = useState<string | null>(null);
 
@@ -121,7 +123,7 @@ export default function HomePage() {
       const response = await uploadVideoWithAssets(
         file, guestPhoto ?? undefined, setUploadProgress, guestName,
         introVideo ?? undefined, outroVideo ?? undefined,
-        parseTime(trimStart), parseTime(trimEnd), features,
+        parseTime(trimStart), parseTime(trimEnd), features, shortsOrientation,
       );
       navigate(`/processing/${response.job_id}`);
     } catch (err: any) {
@@ -136,6 +138,7 @@ export default function HomePage() {
     if (job.status === 'awaiting_review') return `/review/${job.id}`;
     if (job.status === 'awaiting_plan_edit') return `/plan-edit/${job.id}`;
     if (job.status === 'awaiting_short_review') return `/short-review/${job.id}`;
+    if (job.status === 'awaiting_thumbnail_review') return `/thumbnail-review/${job.id}`;
     return `/processing/${job.id}`;
   };
 
@@ -236,6 +239,62 @@ export default function HomePage() {
             ))}
           </div>
         </details>
+      </div>
+
+      {/* Shorts Orientation */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest px-0.5">Shorts Format</p>
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            {
+              value: 'landscape' as const,
+              label: 'Landscape',
+              ratio: '16:9',
+              hint: 'YouTube, LinkedIn',
+              Icon: Monitor,
+            },
+            {
+              value: 'portrait' as const,
+              label: 'Portrait',
+              ratio: '9:16',
+              hint: 'TikTok, Reels, Shorts',
+              Icon: Smartphone,
+            },
+          ]).map(({ value, label, ratio, hint, Icon }) => {
+            const active = shortsOrientation === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setShortsOrientation(value)}
+                disabled={uploading}
+                className={clsx(
+                  'relative px-4 py-4 rounded-xl text-left border transition-all duration-150 disabled:opacity-50',
+                  active
+                    ? 'bg-purple-600/15 border-purple-500/60 shadow-lg shadow-purple-900/20'
+                    : 'bg-gray-900/60 border-gray-800 hover:border-gray-700',
+                )}
+              >
+                {active && (
+                  <span className="absolute top-2.5 right-3 text-purple-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </span>
+                )}
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className={clsx('w-5 h-5', active ? 'text-purple-400' : 'text-gray-500')} />
+                  <span className={clsx(
+                    'text-xs font-mono font-semibold px-1.5 py-0.5 rounded',
+                    active ? 'bg-purple-500/20 text-purple-300' : 'bg-gray-800 text-gray-500',
+                  )}>{ratio}</span>
+                </div>
+                <p className={clsx('text-sm font-semibold', active ? 'text-purple-200' : 'text-gray-300')}>
+                  {label}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">{hint}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Collapsible settings */}

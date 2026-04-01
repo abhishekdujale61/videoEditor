@@ -87,6 +87,7 @@ async def finalize_chunked_upload(
     trim_start: float | None = Form(None),
     trim_end: float | None = Form(None),
     features: str = Form("{}"),
+    shorts_orientation: str = Form("landscape"),  # "landscape" (16:9) or "portrait" (9:16)
 ):
     """Assemble chunks, save optional assets, then start the pipeline."""
     chunk_dir = settings.uploads_path / f"{job_id}_chunks"
@@ -148,10 +149,12 @@ async def finalize_chunked_upload(
     except Exception:
         enabled_features = {}
 
+    orientation = shorts_orientation if shorts_orientation in ("landscape", "portrait") else "landscape"
+
     job_manager.create_job(job_id, filename)
     background_tasks.add_task(
         run_pipeline, job_id, str(upload_path), guest_photo_path, guest_name,
-        intro_path, outro_path, trim_start, trim_end, enabled_features,
+        intro_path, outro_path, trim_start, trim_end, enabled_features, orientation,
     )
 
     return UploadResponse(job_id=job_id, message="Upload complete. Processing started.")
@@ -172,6 +175,7 @@ async def upload_video(
     trim_start: float | None = Form(None),
     trim_end: float | None = Form(None),
     features: str = Form("{}"),
+    shorts_orientation: str = Form("landscape"),
 ):
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
@@ -225,10 +229,12 @@ async def upload_video(
     except Exception:
         enabled_features = {}
 
+    orientation = shorts_orientation if shorts_orientation in ("landscape", "portrait") else "landscape"
+
     job_manager.create_job(job_id, file.filename)
     background_tasks.add_task(
         run_pipeline, job_id, str(upload_path), guest_photo_path, guest_name,
-        intro_path, outro_path, trim_start, trim_end, enabled_features,
+        intro_path, outro_path, trim_start, trim_end, enabled_features, orientation,
     )
 
     return UploadResponse(job_id=job_id, message="Upload successful. Processing started.")
